@@ -1,0 +1,8 @@
+openai 
+gradio 
+tiktoken 
+faiss-gpu 
+langchain 
+validators  
+unstructured[all-docs]  
+langchain_experimental
