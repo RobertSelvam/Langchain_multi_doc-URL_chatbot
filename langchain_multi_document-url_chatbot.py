@@ -22,7 +22,7 @@ from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe
 
 class ChatDocumentQA:
     def __init__(self) -> None:
-        os.environ["OPENAI_API_KEY"] = ""
+        os.environ["OPENAI_API_KEY"] = "YOUR_OPENAI_API_KEY"
 
     def _get_empty_state(self) -> Dict[str, None]:
         """Create an empty knowledge base."""
@@ -116,22 +116,19 @@ class ChatDocumentQA:
         file_path = file_paths[0].name
         file_extension = os.path.splitext(file_path)[1]
 
-        if file_extension == '.pdf':
-            pdf_docs = [file_path.name for file_path in file_paths]
-            raw_text = self._extract_text_from_pdfs(pdf_docs)
-            text_chunks = self._split_text_into_chunks(raw_text)
-            vectorstore = self._create_vector_store_from_text_chunks(text_chunks)
-            return "file uploaded", {"knowledge_base": vectorstore}
-
-        elif file_extension == '.csv':  
+        if file_extension == '.csv':  
             agent = self.create_agent(file_path)
             tools = self.get_agent_tools(agent)
             memory,tools,prompt = self.create_memory_for_csv_qa(tools)
             agent_chain = self.create_agent_chain_for_csv_qa(memory,tools,prompt)
             return "file uploaded", {"knowledge_base": agent_chain}
-            
+
         else:
-            return "file Not uploaded", ""
+            pdf_docs = [file_path.name for file_path in file_paths]
+            raw_text = self._extract_text_from_pdfs(pdf_docs)
+            text_chunks = self._split_text_into_chunks(raw_text)
+            vectorstore = self._create_vector_store_from_text_chunks(text_chunks)
+            return "file uploaded", {"knowledge_base": vectorstore}        
 
     def _get_urls_knowledge_base(self, urls: str) -> Tuple[str, Dict[str, FAISS]]:
         """Build knowledge base from URLs.
@@ -244,28 +241,18 @@ class ChatDocumentQA:
             file_path = file_paths[0].name
             file_extension = os.path.splitext(file_path)[1]
 
-            if file_extension == ".pdf":
-                vectorstore = state["knowledge_base"]
-                chat = self._create_conversation_chain(vectorstore)
-                # user_ques = {"question": message}
-                print("chat_history",chat_history)
-                response = chat({"question": message,"chat_history": chat_history})
-                chat_history.append((message, response["answer"]))
-                return "", chat_history
-
-            elif file_extension == '.csv':
+            if file_extension == '.csv':
                 agent_chain = state["knowledge_base"]
                 response = agent_chain.run(input = message)
                 chat_history.append((message, response))
                 return "", chat_history
-          else:
-              vectorstore = state["knowledge_base"]
-              chat = self._create_conversation_chain(vectorstore)
-              # user_ques = {"question": message}
-              print("chat_history",chat_history)
-              response = chat({"question": message,"chat_history": chat_history})
-              chat_history.append((message, response["answer"]))
-              return "", chat_history
+                
+            else:
+                vectorstore = state["knowledge_base"]
+                chat = self._create_conversation_chain(vectorstore)
+                response = chat({"question": message,"chat_history": chat_history})
+                chat_history.append((message, response["answer"]))
+                return "", chat_history                
         except:
             chat_history.append((message, "Please Upload Document or URL"))
             return "", chat_history
